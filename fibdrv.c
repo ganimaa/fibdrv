@@ -26,17 +26,32 @@ static DEFINE_MUTEX(fib_mutex);
 
 static long long fib_sequence(long long k)
 {
-    /* FIXME: C99 variable-length array (VLA) is not allowed in Linux kernel. */
-    long long f[k + 2];
-
-    f[0] = 0;
-    f[1] = 1;
-
+    long long fib[2] = {0, 1};
     for (int i = 2; i <= k; i++) {
-        f[i] = f[i - 1] + f[i - 2];
+        fib[i & 1] += fib[!(i & 1)];
     }
+    return fib[k & 1];
+}
 
-    return f[k];
+static long long fib_sequence_fast_doubly(uint64_t k)
+{
+    if (k < 2)
+        return k;
+    uint64_t fib[2] = {0, 1};
+    for (uint64_t i = 1UL << 63; i; i >>= 1) {
+        // F(2k) = F(k) * [ 2 * F(k+1) – F(k) ]
+        // F(2k+1) = F(k)^2 + F(k+1)^2
+        uint64_t f1 = fib[0] * (2 * fib[1] - fib[0]);
+        uint64_t f2 = fib[0] * fib[0] + fib[1] * fib[1];
+        if (k & i) {
+            fib[0] = f2;
+            fib[1] = f1 + f2;
+        } else {
+            fib[0] = f1;
+            fib[1] = f2;
+        }
+    }
+    return fib[0];
 }
 
 static int fib_open(struct inode *inode, struct file *file)
@@ -69,6 +84,16 @@ static ssize_t fib_write(struct file *file,
                          size_t size,
                          loff_t *offset)
 {
+    switch (size) {
+    case 0:
+        fib_sequence(*offset);
+        break;
+    case 1:
+        fib_sequence_fast_doubly(*offset);
+        break;
+    default:
+        return 0;
+    };
     return 1;
 }
 
