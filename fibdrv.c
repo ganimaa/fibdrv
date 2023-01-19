@@ -84,17 +84,24 @@ static ssize_t fib_write(struct file *file,
                          size_t size,
                          loff_t *offset)
 {
+    ktime_t kt;
     switch (size) {
     case 0:
+        kt = ktime_get();
         fib_sequence(*offset);
+        kt = ktime_sub(ktime_get(), kt);
         break;
     case 1:
+        kt = ktime_get();
         fib_sequence_fast_doubly(*offset);
+        kt = ktime_sub(ktime_get(), kt);
         break;
+    case 2:
+        return (ssize_t) ktime_to_ns(ktime_get());
     default:
         return 0;
     };
-    return 1;
+    return (ssize_t) ktime_to_ns(kt);
 }
 
 static loff_t fib_device_lseek(struct file *file, loff_t offset, int orig)
