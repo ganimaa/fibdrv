@@ -97,9 +97,10 @@ static ssize_t fib_write(struct file *file,
         kt = ktime_sub(ktime_get(), kt);
         break;
     case 2:
-        return (ssize_t) ktime_to_ns(ktime_get());
+        kt = ktime_get();
+        return (ssize_t) ktime_to_ns(ktime_sub(ktime_get(), kt));
     default:
-        return 0;
+        return 1;
     };
     return (ssize_t) ktime_to_ns(kt);
 }
