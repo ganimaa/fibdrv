@@ -33,12 +33,17 @@ static long long fib_sequence(long long k)
     return fib[k & 1];
 }
 
-static long long fib_sequence_fast_doubly(uint64_t k)
+static long long fib_sequence_fast_doubly(uint64_t k, int size)
 {
     if (k < 2)
         return k;
     uint64_t fib[2] = {0, 1};
-    for (uint64_t i = 1UL << 63; i; i >>= 1) {
+    uint64_t n;
+    if (size == 0)
+        n = 64;
+    else
+        n = __builtin_clz(k);
+    for (uint64_t i = 1UL << (n - 1); i; i >>= 1) {
         // F(2k) = F(k) * [ 2 * F(k+1) – F(k) ]
         // F(2k+1) = F(k)^2 + F(k+1)^2
         uint64_t f1 = fib[0] * (2 * fib[1] - fib[0]);
@@ -85,23 +90,9 @@ static ssize_t fib_write(struct file *file,
                          loff_t *offset)
 {
     ktime_t kt;
-    switch (size) {
-    case 0:
-        kt = ktime_get();
-        fib_sequence(*offset);
-        kt = ktime_sub(ktime_get(), kt);
-        break;
-    case 1:
-        kt = ktime_get();
-        fib_sequence_fast_doubly(*offset);
-        kt = ktime_sub(ktime_get(), kt);
-        break;
-    case 2:
-        kt = ktime_get();
-        return (ssize_t) ktime_to_ns(ktime_sub(ktime_get(), kt));
-    default:
-        return 1;
-    };
+    kt = ktime_get();
+    fib_sequence_fast_doubly(*offset, size);
+    kt = ktime_sub(ktime_get(), kt);
     return (ssize_t) ktime_to_ns(kt);
 }
 

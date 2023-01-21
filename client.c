@@ -29,7 +29,7 @@
 
 void fib_statistic(int fd, char *buf, int offset)
 {
-    FILE *f = fopen("fib.log", "w");
+    FILE *f = fopen("fib-fast.log", "w");
     for (int i = 0; i <= offset; i++) {
         lseek(fd, i, SEEK_SET);
         double t1[SAMPLE] = {0}, t2[SAMPLE] = {0};
