@@ -18,14 +18,14 @@ $(GIT_HOOKS):
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	$(RM) client out *.png
+	$(RM) client out *.png *log
 load:
 	sudo insmod $(TARGET_MODULE).ko
 unload:
 	sudo rmmod $(TARGET_MODULE) || true >/dev/null
 
 client: client.c
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ -lm
 
 PRINTF = env printf
 PASS_COLOR = \e[32;01m
