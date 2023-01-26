@@ -38,11 +38,11 @@ static long long fib_sequence_fast_doubly(uint64_t k, int size)
     if (k < 2)
         return k;
     uint64_t fib[2] = {0, 1};
-    uint64_t n;
+    int n;
     if (size == 0)
         n = 64;
     else
-        n = __builtin_clz(k);
+        n = 64 - __builtin_clz(k);
     for (uint64_t i = 1UL << (n - 1); i; i >>= 1) {
         // F(2k) = F(k) * [ 2 * F(k+1) – F(k) ]
         // F(2k+1) = F(k)^2 + F(k+1)^2
