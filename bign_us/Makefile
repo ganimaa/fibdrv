@@ -1,4 +1,4 @@
-CFLAGS = -O1 -g -Wall -Idudect -I.
+CFLAGS = -O0 -g -Wall -Idudect -I.
 N = 1000
 # Control the build verbosity
 ifeq ("$(VERBOSE)","1")
@@ -30,5 +30,5 @@ check: bntest
 
 clean:
 	rm -f $(OBJS) $(deps)
-	rm -f out
+	rm -f out *.c.*
 	$(RM) bntest
