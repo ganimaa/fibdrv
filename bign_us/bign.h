@@ -62,7 +62,6 @@ void bn_add(const bn *a, const bn *b, bn *c);
  */
 void bn_sub(const bn *a, const bn *b, bn *c);
 
-
 /*
  * c = |a| + |b|
  */
@@ -74,24 +73,12 @@ void bn_do_add(const bn *a, const bn *b, bn *c);
 void bn_do_sub(const bn *a, const bn *b, bn *c);
 
 /*
- * Return the MSB of the bignum
- */
-int bn_msb(const bn *src);
-
-
-/*
  * Compare the bignum a and b which is larger,
  * if |a| > |b|, return 1
  * if |a| = |b|, return 0
  * if |a| < |b|, return -1
  */
 int bn_cmp(const bn *a, const bn *b);
-
-/*
- * Alloc a bn structure with the given size
- * and do initialized.
- */
-bn *bn_alloc(unsigned int size);
 
 /*
  * Replace the bn->size with the input size and
@@ -106,23 +93,44 @@ void bn_resize(bn *src, unsigned int size);
  * return 0 to success, -1 to faild
  */
 int bn_free(bn *src);
+
+/*
+ * To initialize the bn structure with,
+ * sign    = 0,
+ * size    = 1,
+ * nums[0] = 0
+ */
+bn *bn_init(unsigned int size);
+
+/*
+ * c = a * b
+ */
 void bn_mul(const bn *a, const bn *b, bn *c);
 
 /*
- * Calculate the n-th fibonacci sequence
- * by iterative.
+ * Calculate c[i + j] = a[i] + b[j]
  */
-char *bn_fib_iter(unsigned n);
+void bn_mul_add(bn *c, unsigned int offset, unsigned long carry);
 
-
-bn *bn_init(unsigned int size);
-
-void bn_mul_add(bn *c, unsigned int offset, unsigned long long int carry);
-
+/*
+ * Copy a bn structure to another bn structure
+ */
 void bn_cpy(bn *dest, const bn *src);
 
-char *bn_fib_fast(unsigned int n);
-
-bn *bn_func_test(unsigned int k);
-
+/*
+ * Left shift for the bn structure,
+ * shift 31 digits at most.
+ */
 void bn_lshift(bn *src, unsigned int shift);
+
+/*
+ * Calculate the fibonacci sequence with
+ * iterate method.
+ */
+char *bn_fib_iter(unsigned int n);
+
+/*
+ * Calculate the fibonacci sequence with
+ * fast doubling method.
+ */
+char *bn_fib_fast(unsigned int n);

@@ -1,5 +1,5 @@
-CFLAGS = -O0 -g -Wall -Idudect -I.
-N = 1000
+CFLAGS = -O2 -g -Wall -Idudect -I.
+N = 10000
 # Control the build verbosity
 ifeq ("$(VERBOSE)","1")
     Q :=

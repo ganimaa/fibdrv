@@ -24,13 +24,6 @@ int bn_clz(const bn *src)
     return cnt;
 }
 
-int bn_msb(const bn *src)
-{
-    if (!src)
-        return 0;
-    return sizeof(int) * 32 - bn_clz(src);
-}
-
 char *bn_tostring(const bn *src)
 {
     // log10(x) = log2(x) / log2(10) ~= log2(x) / 3.322
@@ -118,7 +111,6 @@ void bn_do_add(const bn *a, const bn *b, bn *c)
 {
     unsigned int new_size = MAX(a->size, b->size) + 1;
     bn *temp = bn_init(new_size);
-    // bn_resize(c, new_size);
     unsigned long carry = 0;
     for (unsigned int i = 0; i < new_size; i++) {
         unsigned int t1 = (i < a->size) ? a->nums[i] : 0;
@@ -133,7 +125,7 @@ void bn_do_add(const bn *a, const bn *b, bn *c)
         else
             break;
     }
-    temp->size = new_size + !new_size;
+    temp->size = new_size;
     bn_cpy(c, temp);
     bn_free(temp);
 }
@@ -144,7 +136,6 @@ void bn_do_add(const bn *a, const bn *b, bn *c)
 void bn_do_sub(const bn *a, const bn *b, bn *c)
 {
     unsigned int new_size = MAX(a->size, b->size);
-    // bn_resize(c, new_size);
     bn *temp = bn_init(new_size);
     long borrow = 0;
     for (int i = 0; i < new_size; i++) {
@@ -159,7 +150,7 @@ void bn_do_sub(const bn *a, const bn *b, bn *c)
             borrow = 0;
         }
     }
-    for (int i = new_size - 1; i >= 0; i--) {
+    for (int i = new_size - 1; i > 0; i--) {
         if (!temp->nums[i])
             new_size--;
         else
@@ -172,14 +163,13 @@ void bn_do_sub(const bn *a, const bn *b, bn *c)
 
 void bn_mul(const bn *a, const bn *b, bn *c)
 {
-    unsigned int new_size = bn_msb(a) + bn_msb(b);
-    new_size = DIV_ROUND(new_size, 32) + !new_size;
+    unsigned int new_size = a->size + b->size + 1;
 
     bn *temp = bn_init(new_size);
     for (int i = 0; i < a->size; i++) {
         for (int j = 0; j < b->size; j++) {
-            unsigned long long int carry = 0;
-            carry = (unsigned long long int) a->nums[i] * b->nums[i];
+            unsigned long carry = 0;
+            carry = (unsigned long) a->nums[i] * b->nums[j];
             bn_mul_add(temp, i + j, carry);
         }
     }
@@ -190,18 +180,20 @@ void bn_mul(const bn *a, const bn *b, bn *c)
             break;
     }
     temp->sign = a->sign ^ b->sign;
-    // bn_resize(temp, new_size);
     temp->size = new_size + !new_size;
     bn_cpy(c, temp);
     bn_free(temp);
 }
 
-void bn_mul_add(bn *res, unsigned int offset, unsigned long long int carry)
+void bn_mul_add(bn *res, unsigned int offset, unsigned long carry)
 {
+    unsigned long x = 0;
     for (unsigned int i = offset; i < res->size; i++) {
-        res->nums[i] = carry & 0xFFFFFFFF;
+        x += res->nums[i] + (carry & 0xFFFFFFFF);
+        res->nums[i] = x;
         carry >>= 32;
-        if (!carry)
+        x >>= 32;
+        if (!carry && !x)
             return;
     }
 }
@@ -272,7 +264,7 @@ bn *bn_init(unsigned int size)
     bn *a = (bn *) malloc(sizeof(bn));
     if (!a)
         return NULL;
-    a->size = size | 1;
+    a->size = size + !size;
     a->sign = 0;
     a->nums = malloc(sizeof(int) * a->size);
     if (!a->nums) {
@@ -295,4 +287,62 @@ void bn_cpy(bn *dest, const bn *src)
         dest->nums[i] = src->nums[i];
     }
     // memcpy(dest->nums, src->nums, sizeof(int) * src->size);
+}
+
+char *bn_fib_iter(unsigned int n)
+{
+    bn *res = bn_init(1);
+    if (n < 2) {
+        res->nums[0] = n;
+        return bn_tostring(res);
+    }
+
+    bn *a, *b;
+    a = bn_init(1);
+    b = bn_init(1);
+    a->nums[0] = 0;
+    b->nums[0] = 1;
+    res->nums[0] = 1;
+    for (int i = 2; i < n; i++) {
+        bn_add(a, b, res);
+        SWAP(a, res);
+        bn_add(a, b, res);
+        SWAP(b, a);
+    }
+    bn_free(a);
+    bn_free(b);
+    return bn_tostring(res);
+}
+
+char *bn_fib_fast(unsigned int n)
+{
+    bn *fib0 = bn_init(1);
+    if (n < 2) {
+        fib0->nums[0] = n;
+        return bn_tostring(fib0);
+    }
+    bn *fib1 = bn_init(1);
+    fib0->nums[0] = 0;
+    fib1->nums[0] = 1;
+    bn *k1 = bn_init(1);
+    bn *k2 = bn_init(1);
+    int k = 32 - __builtin_clz(n);
+    for (unsigned int i = 1U << (k - 1); i; i >>= 1) {
+        // F(2k) = F(k) * [ 2 * F(k+1) – F(k) ]
+        bn_cpy(k1, fib1);
+        bn_lshift(k1, 1);
+        bn_sub(k1, fib0, k1);
+        bn_mul(k1, fib0, k1);
+        // F(2k+1) = F(k)^2 + F(k+1)^2
+        bn_mul(fib0, fib0, fib0);
+        bn_mul(fib1, fib1, fib1);
+        bn_add(fib0, fib1, k2);
+        bn_cpy(fib0, k1);
+        bn_cpy(fib1, k2);
+        if (n & i) {
+            SWAP(fib0, fib1);
+            bn_add(fib0, fib1, fib1);
+        }
+    }
+    return bn_tostring(fib0);
 }
