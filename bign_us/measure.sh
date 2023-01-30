@@ -24,10 +24,8 @@ sudo bash -c "echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo"
 # Measure the performance of fibdrv
 make clean
 make
-make load
-sudo taskset -c 15 ./client
-make unload
-gnuplot scripts/plot-fib.gp
+sudo taskset -c 15 ./bntest 1000 > bn_fib.log
+gnuplot plot.gp
 
 
 echo "Restoring default setting of system"

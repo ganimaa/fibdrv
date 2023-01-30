@@ -27,7 +27,7 @@
 //     fclose(f);
 // }
 
-void fib_statistic(int fd, char *buf, int offset)
+void fib_statistic(int fd, char *buf, char *buf1, int offset)
 {
     FILE *f = fopen("fib-fast.log", "w");
     for (int i = 0; i <= offset; i++) {
@@ -37,8 +37,8 @@ void fib_statistic(int fd, char *buf, int offset)
         double mean2 = 0.0, std2 = 0.0, res2 = 0.0;
 
         for (int j = 0; j < SAMPLE; j++) {
-            t1[j] = (double) write(fd, buf, 0);
-            t2[j] = (double) write(fd, buf, 1);
+            t1[j] = (double) read(fd, buf, 0);
+            t2[j] = (double) write(fd, buf1, 0);
             mean1 += t1[j];
             mean2 += t2[j];
         }
@@ -75,8 +75,9 @@ void fib_statistic(int fd, char *buf, int offset)
 
 int main()
 {
+    char buf[1000];
     char write_buf[] = "testing writing";
-    int offset = 100; /* TODO: try test something bigger than the limit */
+    int offset = 1000; /* TODO: try test something bigger than the limit */
 
     int fd = open(FIB_DEV, O_RDWR);
     if (fd < 0) {
@@ -84,7 +85,15 @@ int main()
         exit(1);
     }
 
-    fib_statistic(fd, write_buf, offset);
+    // for (int i = 0; i <= offset; i++) {
+    //     lseek(fd, i, SEEK_SET);
+    //     long long sz = read(fd, buf, 1);
+    //     // long long uz = write(fd, write_buf, 1);
+    //     // printf("%d, %lld, %lld\n", i, uz, sz);
+    //     printf("Fib(%3d) = %s execute time: %lld ns\n", i, buf, sz);
+    // }
+
+    fib_statistic(fd, buf, write_buf, offset);
 
     close(fd);
     return 0;

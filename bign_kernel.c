@@ -1,11 +1,8 @@
-// #include <linux/slab.h>
-// #include <linux/string.h>
-// #include <linux/types.h>
+#include <linux/slab.h>
+#include <linux/string.h>
+#include <linux/types.h>
 
-#include "bign.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "bign_kernel.h"
 
 // Count leading zeros of the bignum
 int bn_clz(const bn *src)
@@ -31,7 +28,7 @@ char *bn_tostring(const bn *src)
 
     // Plus one is due to the end of the string '\0'
     len = DIV_ROUND(len, 3) + src->sign + 1;
-    char *dest = malloc(len);
+    char *dest = kmalloc(len, GFP_KERNEL);
     char *p = dest;
 
     // Init the output string
@@ -230,7 +227,8 @@ void bn_resize(bn *src, unsigned int size)
         return;
     if (!size)
         size = 1;
-    unsigned int *new_size = realloc(src->nums, sizeof(int) * size);
+    unsigned int *new_size =
+        krealloc(src->nums, sizeof(int) * size, GFP_KERNEL);
     if (!new_size)
         return;
     src->nums = new_size;
@@ -244,21 +242,21 @@ int bn_free(bn *src)
 {
     if (!src)
         return -1;
-    free(src->nums);
-    free(src);
+    kfree(src->nums);
+    kfree(src);
     return 0;
 }
 
 bn *bn_init(unsigned int size)
 {
-    bn *a = (bn *) malloc(sizeof(bn));
+    bn *a = (bn *) kmalloc(sizeof(bn), GFP_KERNEL);
     if (!a)
         return NULL;
     a->size = size + !size;
     a->sign = 0;
-    a->nums = malloc(sizeof(int) * a->size);
+    a->nums = kmalloc(sizeof(int) * a->size, GFP_KERNEL);
     if (!a->nums) {
-        free(a);
+        kfree(a);
         return 0;
     }
     memset(a->nums, 0, a->size * sizeof(int));
@@ -294,9 +292,9 @@ char *bn_fib_iter(unsigned int n)
         SWAP(b, a);
     }
     char *p = bn_tostring(res);
-    bn_free(res);
     bn_free(a);
     bn_free(b);
+    bn_free(res);
     return p;
 }
 

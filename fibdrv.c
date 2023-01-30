@@ -7,6 +7,8 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 
+#include "bign_kernel.h"
+
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
 MODULE_DESCRIPTION("Fibonacci engine driver");
@@ -17,47 +19,47 @@ MODULE_VERSION("0.1");
 /* MAX_LENGTH is set to 92 because
  * ssize_t can't fit the number > 92
  */
-#define MAX_LENGTH 92
+#define MAX_LENGTH 1000
 
 static dev_t fib_dev = 0;
 static struct cdev *fib_cdev;
 static struct class *fib_class;
 static DEFINE_MUTEX(fib_mutex);
 
-static long long fib_sequence(long long k)
-{
-    long long fib[2] = {0, 1};
-    for (int i = 2; i <= k; i++) {
-        fib[i & 1] += fib[!(i & 1)];
-    }
-    return fib[k & 1];
-}
+// static long long fib_sequence(long long k)
+// {
+//     long long fib[2] = {0, 1};
+//     for (int i = 2; i <= k; i++) {
+//         fib[i & 1] += fib[!(i & 1)];
+//     }
+//     return fib[k & 1];
+// }
 
-static long long fib_sequence_fast_doubly(uint64_t k, int size)
-{
-    if (k < 2)
-        return k;
-    uint64_t fib[2] = {0, 1};
-    int n;
-    if (size == 0)
-        n = 64;
-    else
-        n = 64 - __builtin_clz(k);
-    for (uint64_t i = 1UL << (n - 1); i; i >>= 1) {
-        // F(2k) = F(k) * [ 2 * F(k+1) – F(k) ]
-        // F(2k+1) = F(k)^2 + F(k+1)^2
-        uint64_t f1 = fib[0] * (2 * fib[1] - fib[0]);
-        uint64_t f2 = fib[0] * fib[0] + fib[1] * fib[1];
-        if (k & i) {
-            fib[0] = f2;
-            fib[1] = f1 + f2;
-        } else {
-            fib[0] = f1;
-            fib[1] = f2;
-        }
-    }
-    return fib[0];
-}
+// static long long fib_sequence_fast_doubly(uint64_t k, int size)
+// {
+//     if (k < 2)
+//         return k;
+//     uint64_t fib[2] = {0, 1};
+//     int n;
+//     if (size == 0)
+//         n = 64;
+//     else
+//         n = 64 - __builtin_clz(k);
+//     for (uint64_t i = 1UL << (n - 1); i; i >>= 1) {
+//         // F(2k) = F(k) * [ 2 * F(k+1) – F(k) ]
+//         // F(2k+1) = F(k)^2 + F(k+1)^2
+//         uint64_t f1 = fib[0] * (2 * fib[1] - fib[0]);
+//         uint64_t f2 = fib[0] * fib[0] + fib[1] * fib[1];
+//         if (k & i) {
+//             fib[0] = f2;
+//             fib[1] = f1 + f2;
+//         } else {
+//             fib[0] = f1;
+//             fib[1] = f2;
+//         }
+//     }
+//     return fib[0];
+// }
 
 static int fib_open(struct inode *inode, struct file *file)
 {
@@ -80,7 +82,16 @@ static ssize_t fib_read(struct file *file,
                         size_t size,
                         loff_t *offset)
 {
-    return (ssize_t) fib_sequence(*offset);
+    ktime_t kt;
+    kt = ktime_get();
+    char *p = bn_fib_fast(*offset);
+    kt = ktime_sub(ktime_get(), kt);
+    size_t len = strlen(p) + 1;
+    size_t l = copy_to_user(buf, p, len);
+    if (l)
+        return l;
+    return ktime_to_ns(kt);
+    // return (ssize_t) fib_sequence(*offset);
 }
 
 /* write operation is skipped */
@@ -91,7 +102,7 @@ static ssize_t fib_write(struct file *file,
 {
     ktime_t kt;
     kt = ktime_get();
-    fib_sequence_fast_doubly(*offset, size);
+    bn_fib_iter(*offset);
     kt = ktime_sub(ktime_get(), kt);
     return (ssize_t) ktime_to_ns(kt);
 }

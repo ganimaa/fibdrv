@@ -1,4 +1,4 @@
-CFLAGS = -O2 -g -Wall -Idudect -I.
+CFLAGS = -O2 -g -fno-omit-frame-pointer -Wall -Idudect -I.
 N = 10000
 # Control the build verbosity
 ifeq ("$(VERBOSE)","1")
@@ -15,7 +15,7 @@ deps := $(OBJS:%.o=.%.o.d)
 
 bntest: $(OBJS)
 	$(VECHO) "  LD\t$@\n"
-	$(Q)$(CC) $(LDFLAGS) -o $@ $^
+	$(Q)$(CC) $(LDFLAGS) -o $@ $^ -lm
 
 %.o: %.c
 	$(VECHO) "  CC\t$@\n"
@@ -30,5 +30,5 @@ check: bntest
 
 clean:
 	rm -f $(OBJS) $(deps)
-	rm -f out *.c.*
-	$(RM) bntest
+	rm -f out *.c.* *.log *.png
+	$(RM) bntest 
