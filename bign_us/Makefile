@@ -1,4 +1,4 @@
-CFLAGS = -O2 -g -fno-omit-frame-pointer -Wall -Idudect -I.
+CFLAGS = -O2 -g -fomit-frame-pointer -Wall -Idudect -I.
 N = 10000
 # Control the build verbosity
 ifeq ("$(VERBOSE)","1")

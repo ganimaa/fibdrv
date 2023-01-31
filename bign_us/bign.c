@@ -287,11 +287,9 @@ char *bn_fib_iter(unsigned int n)
     a->nums[0] = 0;
     b->nums[0] = 1;
     res->nums[0] = 1;
-    for (int i = 2; i < n; i++) {
-        bn_add(a, b, res);
-        SWAP(a, res);
-        bn_add(a, b, res);
-        SWAP(b, a);
+    for (int i = 2; i <= n; i++) {
+        bn_add(res, b, res);
+        SWAP(res, b);
     }
     char *p = bn_tostring(res);
     bn_free(res);
@@ -323,8 +321,8 @@ char *bn_fib_fast(unsigned int n)
         bn_mul(fib0, fib0, fib0);
         bn_mul(fib1, fib1, fib1);
         bn_add(fib0, fib1, k2);
-        bn_cpy(fib0, k1);
-        bn_cpy(fib1, k2);
+        SWAP(fib0, k1);
+        SWAP(fib1, k2);
         if (n & i) {
             SWAP(fib0, fib1);
             bn_add(fib0, fib1, fib1);
