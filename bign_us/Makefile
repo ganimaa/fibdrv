@@ -16,6 +16,11 @@ deps := $(OBJS:%.o=.%.o.d)
 bntest: $(OBJS)
 	$(VECHO) "  LD\t$@\n"
 	$(Q)$(CC) $(LDFLAGS) -o $@ $^ -lm
+test: test.o bign.o
+	$(Q)$(CC) $(LDFLAGS) -o $@ $^
+	sudo perf stat -r 10 -e cycles,instructions,cache-misses,cache-references,branch-instructions,branch-misses ./test
+	sudo perf record -g --call-graph dwarf ./test
+	sudo perf report --stdio -g graph,0.5,caller
 
 %.o: %.c
 	$(VECHO) "  CC\t$@\n"
@@ -30,5 +35,5 @@ check: bntest
 
 clean:
 	rm -f $(OBJS) $(deps)
-	rm -f out *.c.* *.log *.png
-	$(RM) bntest 
+	rm -f out *.c.* *.log *.png perf.data .*.o.* *.o
+	$(RM) bntest test

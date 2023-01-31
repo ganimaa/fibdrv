@@ -273,12 +273,12 @@ void bn_cpy(bn *dest, const bn *src)
     memcpy(dest->nums, src->nums, sizeof(int) * src->size);
 }
 
-char *bn_fib_iter(unsigned int n)
+bn *bn_fib_iter(unsigned int n)
 {
     bn *res = bn_init(1);
     if (n < 2) {
         res->nums[0] = n;
-        return bn_tostring(res);
+        return res;
     }
 
     bn *a, *b;
@@ -291,19 +291,17 @@ char *bn_fib_iter(unsigned int n)
         bn_add(res, b, res);
         SWAP(res, b);
     }
-    char *p = bn_tostring(res);
-    bn_free(res);
     bn_free(a);
     bn_free(b);
-    return p;
+    return res;
 }
 
-char *bn_fib_fast(unsigned int n)
+bn *bn_fib_fast(unsigned int n)
 {
     bn *fib0 = bn_init(1);
     if (n < 2) {
         fib0->nums[0] = n;
-        return bn_tostring(fib0);
+        return fib0;
     }
     bn *fib1 = bn_init(1);
     fib0->nums[0] = 0;
@@ -328,10 +326,8 @@ char *bn_fib_fast(unsigned int n)
             bn_add(fib0, fib1, fib1);
         }
     }
-    char *p = bn_tostring(fib0);
-    bn_free(fib0);
     bn_free(fib1);
     bn_free(k1);
     bn_free(k2);
-    return p;
+    return fib0;
 }

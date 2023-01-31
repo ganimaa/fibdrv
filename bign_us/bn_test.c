@@ -19,12 +19,12 @@ int main(int argc, char const *argv[])
         double time1[SAMPLE] = {0}, time2[SAMPLE] = {0};
         double mean1 = 0.0, std1 = 0.0, res1 = 0.0;
         double mean2 = 0.0, std2 = 0.0, res2 = 0.0;
-        char *p = NULL, *q = NULL;
+        bn *iter = NULL, *fast = NULL;
         for (int k = 0; k < SAMPLE; k++) {
             clock_gettime(CLOCK_MONOTONIC, &t1);
-            p = bn_fib_iter(i);
+            iter = bn_fib_iter(i);
             clock_gettime(CLOCK_MONOTONIC, &t2);
-            q = bn_fib_fast(i);
+            fast = bn_fib_fast(i);
             clock_gettime(CLOCK_MONOTONIC, &t3);
             double it = (double) (t2.tv_sec * 1e9 + t2.tv_nsec) -
                         (t1.tv_sec * 1e9 + t1.tv_nsec);
@@ -62,8 +62,8 @@ int main(int argc, char const *argv[])
         res2 /= count2;
         printf("%d, %.5lf, %.5lf samples: %d, %d\n", i, res1, res2, count1,
                count2);
-        // printf("Fib_iter(%d) = %s\n", i, p);
-        // printf("Fib_fast(%d) = %s\n", i, q);
+        // printf("Fib_iter(%d) = %s\n", i, bn_tostring(iter));
+        // printf("Fib_fast(%d) = %s\n", i, bn_tostring(fast));
     }
     return 0;
 }

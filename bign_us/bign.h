@@ -127,10 +127,10 @@ void bn_lshift(bn *src, unsigned int shift);
  * Calculate the fibonacci sequence with
  * iterate method.
  */
-char *bn_fib_iter(unsigned int n);
+bn *bn_fib_iter(unsigned int n);
 
 /*
  * Calculate the fibonacci sequence with
  * fast doubling method.
  */
-char *bn_fib_fast(unsigned int n);
+bn *bn_fib_fast(unsigned int n);
