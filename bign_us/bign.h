@@ -1,3 +1,28 @@
+#include <stdint.h>
+
+#if defined(__LP64__) || defined(__x86_64__) || defined(__amd64__) || \
+    defined(__aarch64__)
+#define BN_WSIZE 8
+#else
+#define BN_WSIZE 4
+#endif
+
+#if BN_WSIZE == 8
+typedef uint64_t bign;
+typedef unsigned __int128 bign_t;  // gcc support __int128
+#define BITS 64U
+#define DATA_MASK __UINT64_C(0xffffffffffffffff)
+#define CLZ(x) __builtin_clzll(x)
+#elif BN_WSIZE == 4
+typedef uint32_t bign;
+typedef uint64_t bign_t;
+#define BITS 32U
+#define DATA_MASK __UINT32_C(0xffffffff)
+#define CLZ(x) __builtin_clz(x)
+#else
+#error "BN_WSIZE must be 4 or 8"
+#endif
+
 
 /*
  * Bignum structure
@@ -8,7 +33,7 @@
  */
 
 typedef struct bignum {
-    unsigned int *nums;
+    bign *nums;
     unsigned int size;
     int sign;
 } bn;
@@ -110,7 +135,7 @@ void bn_mul(const bn *a, const bn *b, bn *c);
 /*
  * Calculate c[i + j] = a[i] + b[j]
  */
-void bn_mul_add(bn *c, unsigned int offset, unsigned long carry);
+void bn_mul_add(bn *c, unsigned int offset, bign_t carry);
 
 /*
  * Copy a bn structure to another bn structure

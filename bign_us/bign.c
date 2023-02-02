@@ -15,10 +15,10 @@ int bn_clz(const bn *src)
     int cnt = 0;
     for (int i = src->size - 1; i >= 0; i--) {
         if (src->nums[i]) {
-            cnt += __builtin_clz(src->nums[i]);
+            cnt += CLZ(src->nums[i]);
             return cnt;
         } else {
-            cnt += 32;
+            cnt += BITS;
         }
     }
     return cnt;
@@ -26,8 +26,8 @@ int bn_clz(const bn *src)
 
 char *bn_tostring(const bn *src)
 {
-    // log10(x) = log2(x) / log2(10) ~= log2(x) / 3.322
-    unsigned int len = src->size * 32;
+    // log10(x) = log2(x) / log2(10) ~= log2(x) / 3.BITS2
+    unsigned int len = src->size * BITS;
 
     // Plus one is due to the end of the string '\0'
     len = DIV_ROUND(len, 3) + src->sign + 1;
@@ -40,7 +40,7 @@ char *bn_tostring(const bn *src)
 
     // Combine decimal string with the fast doubling logic
     for (int i = src->size - 1; i >= 0; i--) {
-        for (unsigned int n = 1UL << 31; n; n >>= 1) {
+        for (bign n = 1UL << (BITS - 1); n; n >>= 1) {
             int carry = !!(n & src->nums[i]);
             for (int j = len - 2; j >= 0; j--) {
                 dest[j] += dest[j] + carry - '0';
@@ -104,13 +104,13 @@ void bn_do_add(const bn *a, const bn *b, bn *c)
 {
     unsigned int new_size = MAX(a->size, b->size) + 1;
     bn *temp = bn_init(new_size);
-    unsigned long carry = 0;
+    bign_t carry = 0;
     for (unsigned int i = 0; i < new_size; i++) {
-        unsigned int t1 = (i < a->size) ? a->nums[i] : 0;
-        unsigned int t2 = (i < b->size) ? b->nums[i] : 0;
-        carry = (unsigned long) t1 + t2 + carry;
-        temp->nums[i] = carry;
-        carry >>= 32;
+        bign t1 = (i < a->size) ? a->nums[i] : 0;
+        bign t2 = (i < b->size) ? b->nums[i] : 0;
+        carry = (bign_t) t1 + t2 + carry;
+        temp->nums[i] = carry & DATA_MASK;
+        carry >>= BITS;
     }
     for (int i = new_size - 1; i > 0; i--) {
         if (!temp->nums[i])
@@ -130,18 +130,15 @@ void bn_do_sub(const bn *a, const bn *b, bn *c)
 {
     unsigned int new_size = MAX(a->size, b->size);
     bn *temp = bn_init(new_size);
-    long borrow = 0;
+    bign_t borrow = 0;
     for (int i = 0; i < new_size; i++) {
-        unsigned int t1 = (i < a->size) ? a->nums[i] : 0;
-        unsigned int t2 = (i < b->size) ? b->nums[i] : 0;
-        borrow = (long) t1 - t2 + borrow;
-        if (borrow < 0) {
-            temp->nums[i] = borrow + (1L << 32);
-            borrow = -1;
-        } else {
-            temp->nums[i] = borrow;
-            borrow = 0;
-        }
+        bign_t t1 = (i < a->size) ? a->nums[i] : 0;
+        bign_t t2 = (i < b->size) ? b->nums[i] : 0;
+        t1 += DATA_MASK + 1;
+        t2 += borrow;
+        borrow = t1 - t2;
+        temp->nums[i] = borrow & DATA_MASK;
+        borrow = (borrow > DATA_MASK);
     }
     for (int i = new_size - 1; i > 0; i--) {
         if (!temp->nums[i])
@@ -161,8 +158,8 @@ void bn_mul(const bn *a, const bn *b, bn *c)
     bn *temp = bn_init(new_size);
     for (int i = 0; i < a->size; i++) {
         for (int j = 0; j < b->size; j++) {
-            unsigned long carry = 0;
-            carry = (unsigned long) a->nums[i] * b->nums[j];
+            bign_t carry = 0;
+            carry = (bign_t) a->nums[i] * b->nums[j];
             bn_mul_add(temp, i + j, carry);
         }
     }
@@ -178,14 +175,14 @@ void bn_mul(const bn *a, const bn *b, bn *c)
     bn_free(temp);
 }
 
-void bn_mul_add(bn *res, unsigned int offset, unsigned long carry)
+void bn_mul_add(bn *res, unsigned int offset, bign_t carry)
 {
-    unsigned long x = 0;
+    bign_t x = 0;
     for (unsigned int i = offset; i < res->size; i++) {
-        x += res->nums[i] + (carry & 0xFFFFFFFF);
+        x += res->nums[i] + (carry & DATA_MASK);
         res->nums[i] = x;
-        carry >>= 32;
-        x >>= 32;
+        carry >>= BITS;
+        x >>= BITS;
         if (!carry && !x)
             return;
     }
@@ -196,13 +193,14 @@ void bn_lshift(bn *src, unsigned int shift)
     if (!src)
         return;
     int firstzero = bn_clz(src);
-    shift = shift % 32;
+    shift = shift % BITS;
     if (!shift)
         return;
     if (shift > firstzero)
         bn_resize(src, src->size + 1);
     for (int i = src->size - 1; i > 0; i--) {
-        src->nums[i] = src->nums[i] << shift | src->nums[i - 1] >> (32 - shift);
+        src->nums[i] =
+            src->nums[i] << shift | src->nums[i - 1] >> (BITS - shift);
     }
     src->nums[0] <<= shift;
 }
@@ -230,12 +228,12 @@ void bn_resize(bn *src, unsigned int size)
         return;
     if (!size)
         size = 1;
-    unsigned int *new_size = realloc(src->nums, sizeof(int) * size);
-    if (!new_size)
+    bign *new_nums = realloc(src->nums, sizeof(bign) * size);
+    if (!new_nums)
         return;
-    src->nums = new_size;
+    src->nums = new_nums;
     if (size > src->size) {
-        memset(src->nums + src->size, 0, sizeof(int) * (size - src->size));
+        memset(src->nums + src->size, 0, sizeof(bign) * (size - src->size));
     }
     src->size = size;
 }
@@ -256,12 +254,12 @@ bn *bn_init(unsigned int size)
         return NULL;
     a->size = size + !size;
     a->sign = 0;
-    a->nums = malloc(sizeof(int) * a->size);
+    a->nums = malloc(sizeof(bign) * a->size);
     if (!a->nums) {
         free(a);
         return 0;
     }
-    memset(a->nums, 0, a->size * sizeof(int));
+    memset(a->nums, 0, a->size * sizeof(bign));
     return a;
 }
 
@@ -270,7 +268,7 @@ void bn_cpy(bn *dest, const bn *src)
     if (dest->size != src->size)
         bn_resize(dest, src->size);
     dest->sign = src->sign;
-    memcpy(dest->nums, src->nums, sizeof(int) * src->size);
+    memcpy(dest->nums, src->nums, sizeof(bign) * src->size);
 }
 
 bn *bn_fib_iter(unsigned int n)
@@ -308,8 +306,8 @@ bn *bn_fib_fast(unsigned int n)
     fib1->nums[0] = 1;
     bn *k1 = bn_init(1);
     bn *k2 = bn_init(1);
-    int k = 32 - __builtin_clz(n);
-    for (unsigned int i = 1U << (k - 1); i; i >>= 1) {
+    int k = BITS - CLZ(n);
+    for (bign i = 1U << (k - 1); i; i >>= 1) {
         // F(2k) = F(k) * [ 2 * F(k+1) – F(k) ]
         bn_cpy(k1, fib1);
         bn_lshift(k1, 1);

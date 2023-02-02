@@ -62,8 +62,14 @@ int main(int argc, char const *argv[])
         res2 /= count2;
         printf("%d, %.5lf, %.5lf samples: %d, %d\n", i, res1, res2, count1,
                count2);
-        // printf("Fib_iter(%d) = %s\n", i, bn_tostring(iter));
-        // printf("Fib_fast(%d) = %s\n", i, bn_tostring(fast));
+        // char *p = bn_tostring(iter);
+        // char *q = bn_tostring(fast);
+        // printf("Fib_iter(%d) = %s\n", i, p);
+        // printf("Fib_fast(%d) = %s\n", i, q);
+        // if (strcmp(p, q) != 0) {
+        //     printf("%d\n", i);
+        //     break;
+        // }
     }
     return 0;
 }
