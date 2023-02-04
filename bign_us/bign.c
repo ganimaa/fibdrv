@@ -103,15 +103,22 @@ void bn_sub(const bn *a, const bn *b, bn *c)
 void bn_do_add(const bn *a, const bn *b, bn *c)
 {
     unsigned int new_size = MAX(a->size, b->size) + 1;
+    if (a->size < b->size)
+        SWAP(a, b);
     bn *temp = bn_init(new_size);
-    bign_t carry = 0;
-    for (unsigned int i = 0; i < new_size; i++) {
-        bign t1 = (i < a->size) ? a->nums[i] : 0;
-        bign t2 = (i < b->size) ? b->nums[i] : 0;
-        carry = (bign_t) t1 + t2 + carry;
-        temp->nums[i] = carry & DATA_MASK;
-        carry >>= BITS;
+    bign carry = 0;
+    for (unsigned int i = 0; i < b->size; i++) {
+        bign t1 = a->nums[i];
+        bign t2 = b->nums[i];
+        carry = (t1 += carry) < carry;
+        carry += (temp->nums[i] = t1 + t2) < t2;
     }
+    for (unsigned int i = b->size; i < a->size; i++) {
+        bign t1 = a->nums[i];
+        carry = (t1 += carry) < carry;
+        temp->nums[i] = t1;
+    }
+    temp->nums[a->size] = carry;
     for (int i = new_size - 1; i > 0; i--) {
         if (!temp->nums[i])
             new_size--;
