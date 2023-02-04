@@ -23,6 +23,8 @@ typedef uint64_t bign_t;
 #error "BN_WSIZE must be 4 or 8"
 #endif
 
+#define digit_mul(u, v, hi, lo) \
+    __asm__("mulq %3" : "=a"(lo), "=d"(hi) : "%0"(u), "rm"(v))
 
 /*
  * Bignum structure
@@ -159,3 +161,5 @@ bn *bn_fib_iter(unsigned int n);
  * fast doubling method.
  */
 bn *bn_fib_fast(unsigned int n);
+
+bign mul_add_v2(const bn *a, const bign k, bign *c);

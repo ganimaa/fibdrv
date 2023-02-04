@@ -156,12 +156,9 @@ void bn_mul(const bn *a, const bn *b, bn *c)
     unsigned int new_size = a->size + b->size + 1;
 
     bn *temp = bn_init(new_size);
-    for (int i = 0; i < a->size; i++) {
-        for (int j = 0; j < b->size; j++) {
-            bign_t carry = 0;
-            carry = (bign_t) a->nums[i] * b->nums[j];
-            bn_mul_add(temp, i + j, carry);
-        }
+
+    for (int i = 0; i < b->size; i++) {
+        temp->nums[a->size + i] = mul_add_v2(a, b->nums[i], temp->nums + i);
     }
     for (int i = new_size - 1; i > 0; i--) {
         if (!temp->nums[i])
@@ -186,6 +183,22 @@ void bn_mul_add(bn *res, unsigned int offset, bign_t carry)
         if (!carry && !x)
             return;
     }
+}
+
+bign mul_add_v2(const bn *a, const bign b, bign *c)
+{
+    if (!b)
+        return 0;
+    bign carry = 0;
+    for (int i = 0; i < a->size; i++) {
+        bign high, low;
+        bign_t product = (bign_t) a->nums[i] * b;
+        low = product & DATA_MASK;
+        high = product >> BITS;
+        carry = ((low += carry) < carry) + high;
+        carry += ((c[i] += low) < low);
+    }
+    return carry;
 }
 
 void bn_lshift(bn *src, unsigned int shift)
@@ -257,7 +270,7 @@ bn *bn_init(unsigned int size)
     a->nums = malloc(sizeof(bign) * a->size);
     if (!a->nums) {
         free(a);
-        return 0;
+        return NULL;
     }
     memset(a->nums, 0, a->size * sizeof(bign));
     return a;

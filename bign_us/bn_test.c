@@ -22,7 +22,7 @@ int main(int argc, char const *argv[])
         bn *iter = NULL, *fast = NULL;
         for (int k = 0; k < SAMPLE; k++) {
             clock_gettime(CLOCK_MONOTONIC, &t1);
-            iter = bn_fib_iter(i);
+            // iter = bn_fib_iter(i);
             clock_gettime(CLOCK_MONOTONIC, &t2);
             fast = bn_fib_fast(i);
             clock_gettime(CLOCK_MONOTONIC, &t3);
