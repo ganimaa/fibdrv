@@ -6,6 +6,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
+#include <linux/slab.h>
 
 #include "bign_kernel.h"
 
@@ -26,6 +27,44 @@ static struct cdev *fib_cdev;
 static struct class *fib_class;
 static DEFINE_MUTEX(fib_mutex);
 
+static struct kobject *fib_kobj;
+static int nth = 0;
+
+static ssize_t fib_show(struct kobject *kobj,
+                        struct kobj_attribute *attr,
+                        char *buf)
+{
+    int retval;
+    bn *fast = bn_fib_fast(nth);
+    char *p = bn_tostring(fast);
+    retval = snprintf(buf, PAGE_SIZE, "%s\n", p);
+    bn_free(fast);
+    kfree(p);
+    return retval;
+}
+
+static ssize_t fib_store(struct kobject *kobj,
+                         struct kobj_attribute *attr,
+                         const char *buf,
+                         size_t count)
+{
+    int retval;
+    retval = kstrtoint(buf, 10, &nth);
+    if (!retval)
+        return retval;
+    return count;
+}
+
+static struct kobj_attribute fib_attr = __ATTR(nth, 0664, fib_show, fib_store);
+
+static struct attribute *attrs[] = {
+    &fib_attr.attr,
+    NULL,
+};
+
+static struct attribute_group attr_group = {
+    .attrs = attrs,
+};
 
 static int fib_open(struct inode *inode, struct file *file)
 {
@@ -150,6 +189,13 @@ static int __init init_fib_dev(void)
         rc = -4;
         goto failed_device_create;
     }
+
+    fib_kobj = kobject_create_and_add("fibdrv", kernel_kobj);
+    if (!fib_kobj)
+        return -ENOMEM;
+
+    if (sysfs_create_group(fib_kobj, &attr_group))
+        kobject_put(fib_kobj);
     return rc;
 failed_device_create:
     class_destroy(fib_class);
@@ -167,6 +213,7 @@ static void __exit exit_fib_dev(void)
     class_destroy(fib_class);
     cdev_del(fib_cdev);
     unregister_chrdev_region(fib_dev, 1);
+    kobject_put(fib_kobj);
 }
 
 module_init(init_fib_dev);
