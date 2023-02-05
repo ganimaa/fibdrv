@@ -26,40 +26,6 @@ static struct cdev *fib_cdev;
 static struct class *fib_class;
 static DEFINE_MUTEX(fib_mutex);
 
-// static long long fib_sequence(long long k)
-// {
-//     long long fib[2] = {0, 1};
-//     for (int i = 2; i <= k; i++) {
-//         fib[i & 1] += fib[!(i & 1)];
-//     }
-//     return fib[k & 1];
-// }
-
-// static long long fib_sequence_fast_doubly(uint64_t k, int size)
-// {
-//     if (k < 2)
-//         return k;
-//     uint64_t fib[2] = {0, 1};
-//     int n;
-//     if (size == 0)
-//         n = 64;
-//     else
-//         n = 64 - __builtin_clz(k);
-//     for (uint64_t i = 1UL << (n - 1); i; i >>= 1) {
-//         // F(2k) = F(k) * [ 2 * F(k+1) – F(k) ]
-//         // F(2k+1) = F(k)^2 + F(k+1)^2
-//         uint64_t f1 = fib[0] * (2 * fib[1] - fib[0]);
-//         uint64_t f2 = fib[0] * fib[0] + fib[1] * fib[1];
-//         if (k & i) {
-//             fib[0] = f2;
-//             fib[1] = f1 + f2;
-//         } else {
-//             fib[0] = f1;
-//             fib[1] = f2;
-//         }
-//     }
-//     return fib[0];
-// }
 
 static int fib_open(struct inode *inode, struct file *file)
 {
@@ -84,14 +50,14 @@ static ssize_t fib_read(struct file *file,
 {
     ktime_t kt;
     kt = ktime_get();
-    char *p = bn_fib_fast(*offset);
+    bn *fast = bn_fib_fast(*offset);
     kt = ktime_sub(ktime_get(), kt);
+    char *p = bn_tostring(fast);
     size_t len = strlen(p) + 1;
     size_t l = copy_to_user(buf, p, len);
     if (l)
         return l;
     return ktime_to_ns(kt);
-    // return (ssize_t) fib_sequence(*offset);
 }
 
 /* write operation is skipped */

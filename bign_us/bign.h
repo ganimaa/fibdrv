@@ -137,7 +137,7 @@ void bn_mul(const bn *a, const bn *b, bn *c);
 /*
  * Calculate c[i + j] = a[i] + b[j]
  */
-void bn_mul_add(bn *c, unsigned int offset, bign_t carry);
+bign mul_add_v2(const bn *a, const bign k, bign *c);
 
 /*
  * Copy a bn structure to another bn structure
@@ -161,5 +161,3 @@ bn *bn_fib_iter(unsigned int n);
  * fast doubling method.
  */
 bn *bn_fib_fast(unsigned int n);
-
-bign mul_add_v2(const bn *a, const bign k, bign *c);

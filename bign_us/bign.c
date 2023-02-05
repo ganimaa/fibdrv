@@ -179,19 +179,6 @@ void bn_mul(const bn *a, const bn *b, bn *c)
     bn_free(temp);
 }
 
-void bn_mul_add(bn *res, unsigned int offset, bign_t carry)
-{
-    bign_t x = 0;
-    for (unsigned int i = offset; i < res->size; i++) {
-        x += res->nums[i] + (carry & DATA_MASK);
-        res->nums[i] = x;
-        carry >>= BITS;
-        x >>= BITS;
-        if (!carry && !x)
-            return;
-    }
-}
-
 bign mul_add_v2(const bn *a, const bign b, bign *c)
 {
     if (!b)

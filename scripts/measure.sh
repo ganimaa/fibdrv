@@ -27,7 +27,7 @@ make
 make load
 sudo taskset -c 15 ./client
 make unload
-gnuplot scripts/plot-fib.gp
+# gnuplot scripts/plot-fib.gp
 
 
 echo "Restoring default setting of system"

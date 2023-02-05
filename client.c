@@ -11,26 +11,11 @@
 #define FIB_DEV "/dev/fibonacci"
 #define SAMPLE 1000
 
-// void syscall_overhead(int fd, char *buf, int offset)
-// {
-//     FILE *f = fopen("syscall_overhead.log", "w");
-//     for (int i = 0; i <= offset; i++) {
-//         struct timespec t1, t2;
-//         lseek(fd, i, SEEK_SET);
-//         clock_gettime(CLOCK_MONOTONIC, &t1);
-//         long long kt = write(fd, buf, 0);
-//         clock_gettime(CLOCK_MONOTONIC, &t2);
-//         long long ut =
-//             (t2.tv_sec * 1e9 + t2.tv_nsec) - (t1.tv_sec * 1e9 + t1.tv_nsec);
-//         fprintf(f, "%d %lld %lld %lld\n", i, kt, ut, ut - kt);
-//     }
-//     fclose(f);
-// }
 
 void fib_statistic(int fd, char *buf, char *buf1, int offset)
 {
     FILE *f = fopen("fib-fast.log", "w");
-    for (int i = 0; i <= offset; i++) {
+    for (int i = offset; i <= offset; i++) {
         lseek(fd, i, SEEK_SET);
         double t1[SAMPLE] = {0}, t2[SAMPLE] = {0};
         double mean1 = 0.0, std1 = 0.0, res1 = 0.0;
@@ -88,9 +73,9 @@ int main()
     // for (int i = 0; i <= offset; i++) {
     //     lseek(fd, i, SEEK_SET);
     //     long long sz = read(fd, buf, 1);
-    //     // long long uz = write(fd, write_buf, 1);
-    //     // printf("%d, %lld, %lld\n", i, uz, sz);
-    //     printf("Fib(%3d) = %s execute time: %lld ns\n", i, buf, sz);
+    //     long long uz = write(fd, write_buf, 1);
+    //     printf("%d, %lld, %lld\n", i, uz, sz);
+    //     // printf("Fib(%3d) = %s execute time: %lld ns\n", i, buf, sz);
     // }
 
     fib_statistic(fd, buf, write_buf, offset);
